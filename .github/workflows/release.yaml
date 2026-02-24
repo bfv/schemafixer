@@ -12,10 +12,10 @@ run-name: Release ${{ github.ref_name }}
 #   - DOCKERHUB_TOKEN
 
 env:
-  DOCKER_IMAGE: devbfvio/<<project_name>>
-  EXE_NAME: <<project_name>>
-  IMAGE_TITLE: <<title>>
-  IMAGE_DESCRIPTION: <<description>>
+  DOCKER_IMAGE: devbfvio/schemafixer
+  EXE_NAME: schemafixer
+  IMAGE_TITLE: schemafixer
+  IMAGE_DESCRIPTION: CLI tools for fixing OpenEdge database area between environments
   IMAGE_LICENSES: MIT
   IMAGE_AUTHORS: Bronco Oostermeyer <dev@bfv.io>
 
