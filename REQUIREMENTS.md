@@ -91,3 +91,10 @@ All other lines should left alone and copied from input to output. Line endings 
 
 ## error handling
 If an error is found, exit 1.
+
+## parse command
+The parse command is basically the reversed of apply. 
+The syntax is: `schemafixer parse <df file> <rules yaml file>`
+Both files are mandatory.
+
+The goal of this command is to make a new rules files based on an existing schema and default rules. For every table/index/field is is checked is the (LOB-)area is the default. If not, add a rule for the table/index/field. The syntax of the rules files is the same as of the apply command (in other words, you should be able to apply the newly generated rul to a .df file). The new rules file should contain the default first.

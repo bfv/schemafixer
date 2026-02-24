@@ -1,0 +1,6 @@
+schemafixer:
+  version: 1.0
+  defaults:
+    table: DataArea
+    index: IndexArea
+    lob: LobArea

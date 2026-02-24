@@ -24,6 +24,7 @@ func main() {
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose (debug) logging")
 	rootCmd.AddCommand(newApplyCmd())
+	rootCmd.AddCommand(newParseCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Error().Err(err).Msg("fatal error")
