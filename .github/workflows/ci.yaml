@@ -30,7 +30,7 @@ jobs:
         run: go mod verify
 
       - name: Build for ${{ matrix.os }}
-        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -v ./cmd/annotator
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -v ./cmd/schemafixer
 
       - name: Run go vet
         run: go vet ./...
