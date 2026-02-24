@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -18,8 +18,8 @@ type areaRecord struct {
 	area          string
 }
 
-// newDiffCmd builds and returns the 'diff' cobra command.
-func newDiffCmd() *cobra.Command {
+// NewDiffCmd builds and returns the 'diff' cobra command.
+func NewDiffCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "diff <source.df> <target.df>",
 		Short: "Show area differences between two .df schema files",

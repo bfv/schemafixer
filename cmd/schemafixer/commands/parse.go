@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bufio"
@@ -12,8 +12,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// newParseCmd builds and returns the 'parse' cobra command.
-func newParseCmd() *cobra.Command {
+// NewParseCmd builds and returns the 'parse' cobra command.
+func NewParseCmd() *cobra.Command {
 	var outputFile string
 
 	cmd := &cobra.Command{

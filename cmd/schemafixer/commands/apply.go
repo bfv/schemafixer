@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bufio"
@@ -38,8 +38,8 @@ const (
 	stateOther // sequences and unrecognised constructs — pass through unchanged
 )
 
-// newApplyCmd builds and returns the 'apply' cobra command.
-func newApplyCmd() *cobra.Command {
+// NewApplyCmd builds and returns the 'apply' cobra command.
+func NewApplyCmd() *cobra.Command {
 	var outputFile string
 
 	cmd := &cobra.Command{
