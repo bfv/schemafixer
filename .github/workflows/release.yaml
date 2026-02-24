@@ -1,0 +1,165 @@
+name: Build and Release Go
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+run-name: Release ${{ github.ref_name }}
+
+# dont forget to set these repository secrets and variables:
+#   - DOCKERHUB_USERNAME
+#   - DOCKERHUB_TOKEN
+
+env:
+  DOCKER_IMAGE: devbfvio/<<project_name>>
+  EXE_NAME: <<project_name>>
+  IMAGE_TITLE: <<title>>
+  IMAGE_DESCRIPTION: <<description>>
+  IMAGE_LICENSES: MIT
+  IMAGE_AUTHORS: Bronco Oostermeyer <dev@bfv.io>
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            arch: amd64
+            binary: ${{ env.EXE_NAME }}.exe
+          - os: linux
+            arch: amd64
+            binary: ${{ env.EXE_NAME }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version: '1.25'
+
+      - name: Install syft and grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Build for ${{ matrix.os }}
+        run: |
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} CGO_ENABLED=0 go build -ldflags "-X main.version=${{ github.ref_name }} -w -s" -o build/${{ matrix.binary }} ./cmd/${{ env.EXE_NAME }}
+          
+      - name: Generate SBOM
+        run: |
+          syft packages dir:. -o spdx-json > sbom-spdx-${{ matrix.os }}-${{ matrix.arch }}.json
+          syft packages dir:. -o cyclonedx-json > sbom-cyclonedx-${{ matrix.os }}-${{ matrix.arch }}.json
+
+      - name: Scan SBOM for vulnerabilities
+        run: |
+          grype sbom:sbom-cyclonedx-${{ matrix.os }}-${{ matrix.arch }}.json --fail-on critical
+
+      - name: Create archive
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            zip dist/${{ env.EXE_NAME }}-${{ matrix.os }}-${{ matrix.arch }}.zip -j build/${{ matrix.binary }} README.md LICENSE
+          else
+            tar -czf dist/${{ env.EXE_NAME }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz -C build ${{ matrix.binary }} -C .. README.md LICENSE
+          fi
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: sbom-files-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            sbom-*-${{ matrix.os }}-${{ matrix.arch }}.json
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: ${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/${{ env.EXE_NAME }}-${{ matrix.os }}-${{ matrix.arch }}.*
+
+      - name: upload docker artifacts
+        if: matrix.os == 'linux' && matrix.arch == 'amd64'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: docker-executable
+          path: |
+            build/${{ env.EXE_NAME }}
+            Dockerfile
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
+        with:
+          pattern: '*-amd64'
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2.5.0
+        with:
+          files: |
+            artifacts/**/*
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          generate_release_notes: ${{ !contains(github.ref_name, '-rc') }}
+
+  dockerize:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Download docker artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
+        with:
+          name: docker-executable
+
+      - name: Prepare docker build context
+        run: |
+          mv build/${{ env.EXE_NAME }} ./
+
+      - name: Get version without v
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef  # v3.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }} 
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5.10.0
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_TITLE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSES }}
+            org.opencontainers.image.authors=${{ env.IMAGE_AUTHORS }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83  # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
