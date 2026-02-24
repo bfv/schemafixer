@@ -1,0 +1,19 @@
+schemafixer:
+  version: 1.0
+  defaults:
+    table: DataArea
+    index: IndexArea
+    lob: LobArea
+  tables:
+    - name: customer
+      area: data
+      indexes:
+        custnum: index1
+        comments: idx2
+    - name: item
+      area: data
+      indexes:
+        itemid: index1
+      lob:
+        ItemImage: lob1
+      
