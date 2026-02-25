@@ -72,6 +72,6 @@ TABLE      BillTo          Data Area    DataArea
 The `schemafixer` is wrapped in a container image and is available at `docker.io/devbfvio/schemafixer`.
 Example:
 ```
-docker run -v .:/app/src devbfvio/schemafixer apply sports2020.df rules-prod.yaml -o sports2020-prod.df
+docker run -v .:/src devbfvio/schemafixer apply sports2020.df rules-prod.yaml -o sports2020-prod.df
 ```
-
+Note: the `WORKDIR` is `/src`. So, assuming `sports2020.df` and `rules-prod.yaml` are in the current directory, the `-v .:/src` is essential to make this work. 
