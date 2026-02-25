@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
+	"github.com/bfv/schemafixer/cmd/schemafixer/commands"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"schemafixer/cmd/schemafixer/commands"
 )
 
 // version is set at build time via -ldflags "-X main.version=x.y.z".
