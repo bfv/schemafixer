@@ -20,19 +20,24 @@ type areaRecord struct {
 
 // NewDiffCmd builds and returns the 'diff' cobra command.
 func NewDiffCmd() *cobra.Command {
-	return &cobra.Command{
+	var outputFile string
+
+	cmd := &cobra.Command{
 		Use:   "diff <source.df> <target.df>",
 		Short: "Show area differences between two .df schema files",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDiff(args[0], args[1])
+			return runDiff(args[0], args[1], outputFile)
 		},
 	}
+
+	cmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write output to file instead of stdout")
+	return cmd
 }
 
 // runDiff is the entry point for the diff command.
-func runDiff(sourcePath, targetPath string) error {
-	log.Debug().Str("source", sourcePath).Str("target", targetPath).Msg("diff started")
+func runDiff(sourcePath, targetPath, outputPath string) error {
+	log.Debug().Str("source", sourcePath).Str("target", targetPath).Str("output", outputPath).Msg("diff started")
 
 	sourceLines, err := readLines(sourcePath)
 	if err != nil {
@@ -88,7 +93,17 @@ func runDiff(sourcePath, targetPath string) error {
 		return nil
 	}
 
-	printDiffTable(os.Stdout, rows)
+	out := io.Writer(os.Stdout)
+	if outputPath != "" {
+		f, err := os.Create(outputPath)
+		if err != nil {
+			return fmt.Errorf("creating output file: %w", err)
+		}
+		defer f.Close()
+		out = f
+	}
+
+	printDiffTable(out, rows)
 	log.Debug().Int("differences", len(rows)).Msg("diff complete")
 	return nil
 }
