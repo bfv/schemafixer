@@ -34,4 +34,16 @@ sboms:
 
 release:
   prerelease: auto  # detecteert '-rc' automatisch
-  
+
+dockers:
+  - image_templates:
+      - "devbfvio/schemafixer:{{ .Version }}"
+      - "devbfvio/schemafixer:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.source=https://github.com/bfv/schemafixer"
+    extra_files:
+      - README.md
+      - LICENSE

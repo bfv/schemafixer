@@ -12,6 +12,6 @@ WORKDIR /app/src
 FROM scratch
 
 COPY --from=builder /app /app
+WORKDIR /app/bin
 
-ENTRYPOINT ["/app/bin/schemafixer", "parse", "/app/src", "--output", "/app/output/schemafixer.json", "--logtoconsole"]
-
+ENTRYPOINT ["/app/bin/schemafixer"]
