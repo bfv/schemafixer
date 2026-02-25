@@ -29,6 +29,10 @@ and execute:
 `schemafixer apply sports2020.df rules.yaml`. This will replace all areas for which no specific rules are specified with the default value from the rules. So, the `customer` and `item` table are put in the `data` area, the rest in `DataArea`, based on above rule. 
 The `item.itemid` index goes in area `index1` etc...
 
+![image](./images/overview.png)
+
+The idea is that this way it's possible to have different areas for various environment with the need to keep track of them in the .df in your source control.
+
 ## parse
 Suppose you have an existing production schema and you don't want to hand type all the rules. This is where the `parse` command comes in handy.
 Suppose a lot of tables etc go into default areas and you want to record the exceptions, use the `parse` command:
@@ -64,4 +68,10 @@ INDEX      Benefits.EmpNo  Index Area   (not present)
 TABLE      BillTo          Data Area    DataArea
 ```
 
+## docker
+The `schemafixer` is wrapped in a container image and is available at `docker.io/devbfvio/schemafixer`.
+Example:
+```
+docker run -v .:/app/src devbfvio/schemafixer apply sports2020.df rules-prod.yaml -o sports2020-prod.df
+```
 
