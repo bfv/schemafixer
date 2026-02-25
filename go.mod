@@ -1,4 +1,4 @@
-module schemafixer
+module github.com/bfv/schemafixer
 
 go 1.26
 
