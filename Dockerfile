@@ -12,6 +12,6 @@ WORKDIR /app/src
 FROM scratch
 
 COPY --from=builder /app /app
-WORKDIR /app/bin
+WORKDIR /app/src
 
 ENTRYPOINT ["/app/bin/schemafixer"]
