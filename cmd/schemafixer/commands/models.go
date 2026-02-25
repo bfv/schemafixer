@@ -24,5 +24,5 @@ type TableRule struct {
 	Name    string            `yaml:"name"`
 	Area    string            `yaml:"area"`
 	Indexes map[string]string `yaml:"indexes"`
-	Lob     map[string]string `yaml:"lob"`
+	Lobs    map[string]string `yaml:"lobs"`
 }

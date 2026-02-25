@@ -56,7 +56,7 @@ func runParse(dfPath, rulesPath, outputPath string) error {
 		name    string // original casing from .df
 		area    string // non-default area, empty = use default
 		indexes map[string]string
-		lob     map[string]string
+		lobs    map[string]string
 	}
 	tableOrder := []string{} // lower-cased names, insertion order
 	tableMap := map[string]*tableEntry{}
@@ -67,7 +67,7 @@ func runParse(dfPath, rulesPath, outputPath string) error {
 			tableMap[key] = &tableEntry{
 				name:    tableName,
 				indexes: map[string]string{},
-				lob:     map[string]string{},
+				lobs:    map[string]string{},
 			}
 			tableOrder = append(tableOrder, key)
 		}
@@ -136,7 +136,7 @@ func runParse(dfPath, rulesPath, outputPath string) error {
 				area := m[2]
 				if !strings.EqualFold(area, defaults.Lob) {
 					e := getOrCreate(currentTable)
-					e.lob[currentField] = area
+					e.lobs[currentField] = area
 					log.Debug().Str("field", currentField).Str("table", currentTable).Str("area", area).Msg("non-default LOB area")
 				}
 			}
@@ -160,8 +160,8 @@ func runParse(dfPath, rulesPath, outputPath string) error {
 		if len(e.indexes) > 0 {
 			tr.Indexes = e.indexes
 		}
-		if len(e.lob) > 0 {
-			tr.Lob = e.lob
+		if len(e.lobs) > 0 {
+			tr.Lobs = e.lobs
 		}
 		out.SchemaFixer.Tables = append(out.SchemaFixer.Tables, tr)
 	}

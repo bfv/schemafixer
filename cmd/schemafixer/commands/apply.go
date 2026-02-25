@@ -232,7 +232,7 @@ func (r *SchemaFixerRules) indexArea(tableName, indexName string) string {
 func (r *SchemaFixerRules) lobArea(tableName, fieldName string) string {
 	for _, t := range r.Tables {
 		if strings.EqualFold(t.Name, tableName) {
-			for k, v := range t.Lob {
+			for k, v := range t.Lobs {
 				if strings.EqualFold(k, fieldName) {
 					return v
 				}

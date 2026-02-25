@@ -51,7 +51,7 @@ schemafixer:
       area: data
       indexes:
         itemid: index1
-      lob:
+      lobs:
         ItemImage: lob1      
 ```
 The values in default and tables are literal values (no references).

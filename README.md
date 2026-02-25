@@ -22,7 +22,7 @@ schemafixer:
       area: data
       indexes:
         itemid: index1
-      lob:
+      lobs:
         ItemImage: lob1
 ```
 and execute:
@@ -39,7 +39,7 @@ schemafixer:
   defaults:
     table: DataArea
     index: IndexArea
-    lob: LobArea
+    lobs: LobArea
 ```
 This will result in a new rules file based on the existing schema.
 
