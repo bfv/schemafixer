@@ -43,7 +43,7 @@ schemafixer:
   defaults:
     table: DataArea
     index: IndexArea
-    lobs: LobArea
+    lob: LobArea
 ```
 This will result in a new rules file based on the existing schema.
 
