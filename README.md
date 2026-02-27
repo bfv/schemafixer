@@ -29,7 +29,7 @@ and execute:
 `schemafixer apply sports2020.df rules.yaml`. This will replace all areas for which no specific rules are specified with the default value from the rules. So, the `customer` and `item` table are put in the `data` area, the rest in `DataArea`, based on above rule. 
 The `item.itemid` index goes in area `index1` etc...
 
-![image](./images/overview.png)
+![image](./doc/overview.png)
 
 The idea is that this way it's possible to have different areas for various environment with the need to keep track of them in the .df in your source control.
 
