@@ -1,11 +1,15 @@
 version: 2
 
+git:
+  ignore_tags:
+    - "nightly"
+
 builds:
   - id: schemafixer
     main: ./cmd/schemafixer
     binary: schemafixer
     ldflags:
-      - -X main.version={{.Version}} -w -s
+      - -s -w -X main.version={{.Version}}
     env:
       - CGO_ENABLED=0
     goos:
