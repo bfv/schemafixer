@@ -9,7 +9,9 @@ builds:
     main: ./cmd/schemafixer
     binary: schemafixer
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - -s -w -X main.version={{.Version}} -extldflags=-static
+    flags:
+      - -trimpath
     env:
       - CGO_ENABLED=0
     goos:

@@ -18,10 +18,21 @@ all: build
 build: build-windows build-linux
 
 build-windows:
-	env GOOS=windows GOARCH=amd64 go build -o $(BUILDDIR)/$(BINARY_WINDOWS) -ldflags "-X main.version=$(VERSION) -w -s" ./cmd/schemafixer
+	env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -o $(BUILDDIR)/$(BINARY_WINDOWS) -ldflags "-X main.version=$(VERSION) -w -s -extldflags=-static" ./cmd/schemafixer
 
 build-linux:
-	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BUILDDIR)/$(BINARY_LINUX) -ldflags "-X main.version=$(VERSION) -w -s" ./cmd/schemafixer
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o $(BUILDDIR)/$(BINARY_LINUX) -ldflags "-X main.version=$(VERSION) -w -s -extldflags=-static" ./cmd/schemafixer
+
+# Build with UPX compression (requires UPX installed)
+build-compressed: build-windows-compressed build-linux-compressed
+
+build-windows-compressed:
+	env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -o $(BUILDDIR)/$(BINARY_WINDOWS) -ldflags "-X main.version=$(VERSION) -w -s -extldflags=-static" ./cmd/schemafixer
+	upx --best --lzma $(BUILDDIR)/$(BINARY_WINDOWS)
+
+build-linux-compressed:
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o $(BUILDDIR)/$(BINARY_LINUX) -ldflags "-X main.version=$(VERSION) -w -s -extldflags=-static" ./cmd/schemafixer
+	upx --best --lzma $(BUILDDIR)/$(BINARY_LINUX)
 
 # Test targets
 test:
