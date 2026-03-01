@@ -91,7 +91,6 @@ func runDiff(sourcePath, targetPath, outputPath, tablemoveDB string) error {
 	}
 
 	if len(rows) == 0 {
-		fmt.Println("No area differences found.")
 		return nil
 	}
 
