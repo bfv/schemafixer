@@ -110,5 +110,27 @@ CONSTRUCT       NAME              SOURCE AREA     TARGET AREA
 TABLE           Customer          Data Area        CustomerArea
 INDEX           Customer.CustNum  Index Area       CustIndexArea
 LOB             Item.ItemImage    LOB Area         ImageArea
-
+```
 In the output for index/lob: the name of the construct should be prefixed with the table name.
+
+### `--tablemove` 
+The `--tablemove <database-name>` parameter (`diff` command), should output a (shell) script with the instructions. If for a table either the table, an idexes or a lob change area there should a line generated like:
+
+```
+proutil <database-name> -C tablemove data-area index-area [lob-area]
+```
+lob-area is optional and only necessary if the table actually contains lobs. Area names which contain spaces (blanks) should be between double quotes.
+
+An example call would look like:
+```
+schemafixer diff source.df target.df --tablemove kvstore
+```
+Assuming a database name of `kvstore` here.
+
+the full syntax of proutil tablemove is:
+```
+proutil db-name -C tablemove 
+     [owner-name.]table-name table-area [index-area]
+     [lob-area][ truncate ] [ tenant tenant-name| group group-name | 
+         partition partition-name | composite initial]
+```

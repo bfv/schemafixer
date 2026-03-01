@@ -33,6 +33,8 @@ The `item.itemid` index goes in area `index1` etc...
 
 The idea is that this way it's possible to have different areas for various environment with the need to keep track of them in the .df in your source control.
 
+NOTE: although it's possible to redirect `stdout` to a file (`... > blabla.df`), it is advised to use `... -o blabla.df` instead. There are cases (shells) where redirecting causes codepage issues.
+
 ## parse
 Suppose you have an existing production schema and you don't want to hand type all the rules. This is where the `parse` command comes in handy.
 Suppose a lot of tables etc go into default areas and you want to record the exceptions, use the `parse` command:
