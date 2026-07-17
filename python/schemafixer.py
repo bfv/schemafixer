@@ -285,6 +285,22 @@ def run_apply(df_path: str, rules_path: str, output_path: Optional[str]) -> int:
 
 
 # ── parse ─────────────────────────────────────────────────────────────────────
+# NOTE: the Go implementation (cmd/schemafixer/commands/parse.go) marshals
+# its output with gopkg.in/yaml.v3, which has a well-known indentation quirk
+# for maps nested inside sequence items that PyYAML cannot byte-replicate.
+# The two ports are therefore only guaranteed to produce *semantically*
+# equivalent YAML (see the "parse" case in test/consistency_test.go, which
+# compares parsed structure rather than raw bytes), not byte-identical text.
+def _go_style_version(version: float) -> float | int:
+    """yaml.v3 formats a whole-number float64 without a trailing ".0"
+    (e.g. 1.0 -> "1"), whereas PyYAML always renders Python floats with a
+    decimal point. Returning an int for whole numbers matches Go's output;
+    non-integral versions are returned unchanged as floats."""
+    if version == int(version):
+        return int(version)
+    return version
+
+
 @dataclass
 class _TableEntry:
     name: str
@@ -376,19 +392,24 @@ def run_parse(df_path: str, rules_path: str, output_path: Optional[str]) -> int:
                         current_field, current_table, area,
                     )
 
+    # Mirror Go's models.go: Indexes/Lobs have no `omitempty` tag, so
+    # yaml.v3 always emits them (as `{}` when empty) with map keys sorted
+    # alphabetically (Go map marshalling is order-independent -> sorted).
     out_tables = []
     for key in table_order:
         e = table_map[key]
-        tr: dict = {"name": e.name, "area": e.area}
-        if e.indexes:
-            tr["indexes"] = e.indexes
-        if e.lobs:
-            tr["lobs"] = e.lobs
-        out_tables.append(tr)
+        out_tables.append(
+            {
+                "name": e.name,
+                "area": e.area,
+                "indexes": dict(sorted(e.indexes.items())),
+                "lobs": dict(sorted(e.lobs.items())),
+            }
+        )
 
     out_doc = {
         "schemafixer": {
-            "version": rules.version,
+            "version": _go_style_version(rules.version),
             "defaults": {
                 "table": defaults.table,
                 "index": defaults.index,
