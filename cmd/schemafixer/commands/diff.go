@@ -258,6 +258,9 @@ func printProutilCommands(w io.Writer, rows []diffRow, sourceMap, targetMap map[
 	}
 
 	tableChanges := make(map[string]*tableChange)
+	// tableOrder tracks each table's first-encounter order in rows, since Go
+	// map iteration order is randomized and must not leak into output.
+	var tableOrder []string
 
 	for _, row := range rows {
 		// Skip rows where target is missing.
@@ -282,6 +285,7 @@ func printProutilCommands(w io.Writer, rows []diffRow, sourceMap, targetMap map[
 		// Initialize table change if not exists.
 		if tableChanges[tableName] == nil {
 			tableChanges[tableName] = &tableChange{tableName: tableName}
+			tableOrder = append(tableOrder, tableName)
 		}
 
 		tc := tableChanges[tableName]
@@ -298,8 +302,9 @@ func printProutilCommands(w io.Writer, rows []diffRow, sourceMap, targetMap map[
 		}
 	}
 
-	// Generate proutil commands.
-	for _, tc := range tableChanges {
+	// Generate proutil commands in first-encounter order (see tableOrder).
+	for _, tableName := range tableOrder {
+		tc := tableChanges[tableName]
 		if !tc.hasTable && !tc.hasIndex && !tc.hasLob {
 			continue
 		}
