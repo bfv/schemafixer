@@ -38,6 +38,7 @@ func main() {
 	rootCmd.AddCommand(commands.NewApplyCmd())
 	rootCmd.AddCommand(commands.NewParseCmd())
 	rootCmd.AddCommand(commands.NewDiffCmd())
+	rootCmd.AddCommand(commands.NewFlattenCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Error().Err(err).Msg("fatal error")

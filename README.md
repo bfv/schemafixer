@@ -31,7 +31,7 @@ The `item.itemid` index goes in area `index1` etc...
 
 ![image](./doc/overview.png)
 
-The idea is that this way it's possible to have different areas for various environment with the need to keep track of them in the .df in your source control.
+The idea is that this way it's possible to have different areas for various environment without the need to keep track of them in the .df in your source control.
 
 NOTE: although it's possible to redirect `stdout` to a file (`... > blabla.df`), it is advised to use `... -o blabla.df` instead. There are cases (shells) where redirecting causes codepage issues.
 
@@ -69,6 +69,21 @@ TABLE      Benefits        Data Area    (not present)
 INDEX      Benefits.EmpNo  Index Area   (not present)
 TABLE      BillTo          Data Area    DataArea
 ```
+
+## flatten
+Suppose you want to reset a development/production `.df` back to a single, uniform schema layout before re-applying rules, or you're importing a schema dump that still carries production area names and `CAN-*` attributes you want stripped. The `flatten` command resets all `AREA`/`LOB-AREA` values to `"Schema Area"` and removes all `CAN-*` lines:
+
+`schemafixer flatten sports2020.df -o flattened.df`
+
+You can also point it at a directory to process every `.df` file inside it in one go:
+
+`schemafixer flatten ./schema -o ./flattened`
+
+Without `-o`, files are overwritten in place. `-o` behaves according to the input:
+- single file input: `-o` is the output file path.
+- directory input: `-o` is the output directory (created if it doesn't exist); each `.df` file is written there under its original name.
+
+NOTE: no assumption is made about the file's codepage. The `.df` trailer declares its own encoding via a `cpstream=<name>` line, and `flatten` only ever touches plain-ASCII `AREA`/`LOB-AREA`/`CAN-` lines, passing everything else through byte-for-byte untouched.
 
 ## docker
 The `schemafixer` is wrapped in a container image and is available at `docker.io/devbfvio/schemafixer`.
