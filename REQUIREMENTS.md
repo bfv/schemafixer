@@ -11,7 +11,7 @@ Normally these area's aren't payed much attention to in the development cycle, b
 The tool we are going write will be able to transform a "development .df" to the (area) structure which can be used for the target environment. This is done based on a YAML defintion file. The CLI command will be called `schemafixer` in this document we use `sf` as short for `schemafixer`.
 
 ## tech stack
-- Go 1.26.0
+- Go 1.27.0
   - use cobra/viper for parameters
     - go get github.com/spf13/viper v1.21.0
     - go get -u github.com/spf13/cobra@latest

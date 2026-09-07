@@ -1,6 +1,6 @@
 module github.com/bfv/schemafixer
 
-go 1.26
+go 1.27
 
 require (
 	github.com/rs/zerolog v1.33.0

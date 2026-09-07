@@ -1,9 +1,9 @@
-// Package test contains cross-implementation consistency checks that verify
+// Package consistency contains cross-implementation checks that verify
 // the Python port (python/schemafixer.py) produces byte-for-byte identical
 // output to the Go implementation (cmd/schemafixer). The Go implementation
 // is treated as the source of truth: any divergence is reported as a
 // failure of the Python port, never the other way around.
-package test
+package consistency
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ func repoRoot(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("determining working directory: %v", err)
 	}
-	// This file lives in <root>/test, so the parent directory is the root.
+	// This file lives in <root>/consistency, so the parent directory is the root.
 	return filepath.Dir(wd)
 }
 
