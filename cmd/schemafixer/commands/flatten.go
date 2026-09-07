@@ -20,6 +20,8 @@ var (
 	// Any line whose first word starts with CAN- (CAN-CREATE, CAN-DELETE,
 	// CAN-READ, CAN-WRITE, CAN-DUMP, CAN-LOAD, ...), regardless of indentation.
 	reFlattenCan = regexp.MustCompile(`(?m)^[ \t]*CAN-\S*.*$\n?`)
+	// A standalone FROZEN directive, regardless of indentation.
+	reFlattenFrozen = regexp.MustCompile(`(?m)^[ \t]*FROZEN[ \t]*\n?`)
 )
 
 const (
@@ -125,10 +127,12 @@ func flattenFile(srcPath, destPath string) error {
 	areaCount := len(reFlattenArea.FindAllString(content, -1))
 	lobAreaCount := len(reFlattenLobArea.FindAllString(content, -1))
 	canCount := len(reFlattenCan.FindAllString(content, -1))
+	frozenCount := len(reFlattenFrozen.FindAllString(content, -1))
 
 	newContent := reFlattenArea.ReplaceAllString(content, flattenAreaReplacement)
 	newContent = reFlattenLobArea.ReplaceAllString(newContent, flattenLobAreaReplacement)
 	newContent = reFlattenCan.ReplaceAllString(newContent, "")
+	newContent = reFlattenFrozen.ReplaceAllString(newContent, "")
 
 	lineEnding := "\n"
 	if runtime.GOOS == "windows" {
@@ -147,6 +151,7 @@ func flattenFile(srcPath, destPath string) error {
 		Int("area", areaCount).
 		Int("lobArea", lobAreaCount).
 		Int("canDeleted", canCount).
+		Int("frozenDeleted", frozenCount).
 		Msg("flattened")
 
 	return nil

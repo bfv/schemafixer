@@ -17,8 +17,8 @@ Subcommands:
         --tablemove) generate `proutil ... -C tablemove` commands.
 
     flatten <directory|file.df> [file2.df ...] [-o OUTPUT]
-        Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN-
-        lines. A single directory argument processes all .df files in
+        Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- and
+        FROZEN lines. A single directory argument processes all .df files in
         that directory; multiple arguments are treated as explicit files.
 
 Dependencies:
@@ -69,6 +69,8 @@ RE_FLATTEN_LOB_AREA = re.compile(r'^  LOB-AREA ".*"$', re.MULTILINE)
 # Any line whose first word starts with CAN- (CAN-CREATE, CAN-DELETE, CAN-READ,
 # CAN-WRITE, CAN-DUMP, CAN-LOAD, ...), regardless of indentation.
 RE_FLATTEN_CAN = re.compile(r'^[ \t]*CAN-\S*.*$\n?', re.MULTILINE)
+# A standalone FROZEN directive, regardless of indentation.
+RE_FLATTEN_FROZEN = re.compile(r'^[ \t]*FROZEN[ \t]*\n?', re.MULTILINE)
 
 FLATTEN_AREA_REPLACEMENT = '  AREA "Schema Area"'
 FLATTEN_LOB_AREA_REPLACEMENT = '  LOB-AREA "Schema Area"'
@@ -710,14 +712,14 @@ def run_diff(
 
 
 # ── flatten ───────────────────────────────────────────────────────────────────
-def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int]:
+def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int, int]:
     """Apply the flatten transformations to src_path and write the result to
     dest_path.
 
     The .df trailer declares its own codepage via a "cpstream=<name>" line,
     so no encoding assumption is made here. The file is treated as a raw
     byte sequence (via latin-1, same convention as read_lines) since
-    AREA/LOB-AREA/CAN- constructs are always plain ASCII; any multi-byte
+    AREA/LOB-AREA/CAN-/FROZEN constructs are always plain ASCII; any multi-byte
     payload elsewhere in the file (descriptions, labels, etc.) is passed
     through untouched regardless of its actual codepage.
     """
@@ -733,10 +735,12 @@ def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int]:
     area_count = len(RE_FLATTEN_AREA.findall(content))
     lob_area_count = len(RE_FLATTEN_LOB_AREA.findall(content))
     can_count = len(RE_FLATTEN_CAN.findall(content))
+    frozen_count = len(RE_FLATTEN_FROZEN.findall(content))
 
     new_content = RE_FLATTEN_AREA.sub(FLATTEN_AREA_REPLACEMENT, content)
     new_content = RE_FLATTEN_LOB_AREA.sub(FLATTEN_LOB_AREA_REPLACEMENT, new_content)
     new_content = RE_FLATTEN_CAN.sub("", new_content)
+    new_content = RE_FLATTEN_FROZEN.sub("", new_content)
 
     line_ending = "\r\n" if os.name == "nt" else "\n"
     if line_ending != "\n":
@@ -746,11 +750,11 @@ def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int]:
         f.write(new_content)
 
     log.info(
-        "flattened file=%s area=%d lobArea=%d canDeleted=%d",
-        os.path.basename(src_path), area_count, lob_area_count, can_count,
+        "flattened file=%s area=%d lobArea=%d canDeleted=%d frozenDeleted=%d",
+        os.path.basename(src_path), area_count, lob_area_count, can_count, frozen_count,
     )
 
-    return area_count, lob_area_count, can_count
+    return area_count, lob_area_count, can_count, frozen_count
 
 
 def run_flatten(paths: list[str], output_path: Optional[str]) -> int:
@@ -839,7 +843,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     flatten_cmd = subparsers.add_parser(
         "flatten",
-        help='Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- lines',
+        help='Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- and FROZEN lines',
     )
     flatten_cmd.add_argument(
         "paths", nargs="+", metavar="directory|file.df",

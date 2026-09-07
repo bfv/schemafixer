@@ -54,6 +54,18 @@ func TestFlattenFile(t *testing.T) {
 				"\n",
 		},
 		{
+			name: "strips standalone FROZEN lines regardless of indentation",
+			input: "ADD TABLE \"Account\"\n" +
+				"  FROZEN\n" +
+				"\tFROZEN  \n" +
+				"FROZEN\n" +
+				"  DESCRIPTION \"FROZEN must survive inside a value\"\n" +
+				"\n",
+			want: "ADD TABLE \"Account\"\n" +
+				"  DESCRIPTION \"FROZEN must survive inside a value\"\n" +
+				"\n",
+		},
+		{
 			name:  "CRLF line endings are normalized and restored",
 			input: "ADD TABLE \"Item\"\r\n  AREA \"Data Area\"\r\n\r\n",
 			want:  "ADD TABLE \"Item\"\n  AREA \"Schema Area\"\n\n",
@@ -171,8 +183,8 @@ func TestRunFlatten_DirectoryMode(t *testing.T) {
 	outDir := filepath.Join(t.TempDir(), "nested", "out")
 
 	files := map[string]string{
-		"a.df":       "  AREA \"Data Area\"\n",
-		"b.df":       "  LOB-AREA \"Lob Area\"\n",
+		"a.df":        "  AREA \"Data Area\"\n",
+		"b.df":        "  LOB-AREA \"Lob Area\"\n",
 		"ignored.txt": "  AREA \"Data Area\"\n",
 	}
 	for name, content := range files {
