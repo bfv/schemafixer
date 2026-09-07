@@ -128,6 +128,42 @@ func TestFlattenFile_MissingSource(t *testing.T) {
 	}
 }
 
+func TestFlattenFileWithOptions_KeepAreas(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "in.df")
+	dst := filepath.Join(dir, "out.df")
+	input := "ADD TABLE \"Item\"\n" +
+		"  AREA \"Data Area\"\n" +
+		"  CAN-READ \"*\"\n" +
+		"  FROZEN\n" +
+		"\n" +
+		"ADD FIELD \"Image\" OF \"Item\" AS blob\n" +
+		"  LOB-AREA \"Lob Area\"\n"
+	if err := os.WriteFile(src, []byte(input), 0o644); err != nil {
+		t.Fatalf("writing fixture: %v", err)
+	}
+
+	if err := flattenFileWithOptions(src, dst, true); err != nil {
+		t.Fatalf("flattenFileWithOptions() error = %v", err)
+	}
+
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	want := "ADD TABLE \"Item\"\n" +
+		"  AREA \"Data Area\"\n" +
+		"\n" +
+		"ADD FIELD \"Image\" OF \"Item\" AS blob\n" +
+		"  LOB-AREA \"Lob Area\"\n"
+	if runtime.GOOS == "windows" {
+		want = strings.ReplaceAll(want, "\n", "\r\n")
+	}
+	if string(got) != want {
+		t.Errorf("flattenFileWithOptions() output mismatch\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
 func TestRunFlatten_SingleFileInPlace(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "in.df")

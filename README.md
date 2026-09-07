@@ -82,6 +82,10 @@ Suppose you want to reset a development/production `.df` back to a single, unifo
 
 `schemafixer flatten sports2020.df -o flattened.df`
 
+Use `--keep-areas` to preserve existing `AREA` and `LOB-AREA` values while still removing `CAN-*` and `FROZEN` lines:
+
+`schemafixer flatten sports2020.df --keep-areas -o cleaned.df`
+
 You can also point it at a directory to process every `.df` file inside it in one go:
 
 `schemafixer flatten ./schema -o ./flattened`

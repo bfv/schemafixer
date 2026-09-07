@@ -19,10 +19,11 @@ Subcommands:
         Show area differences between two .df schema files, or (with
         --tablemove) generate `proutil ... -C tablemove` commands.
 
-    flatten <directory|file.df> [file2.df ...] [-o OUTPUT]
+    flatten <directory|file.df> [file2.df ...] [-o OUTPUT] [--keep-areas]
         Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- and
-        FROZEN lines. A single directory argument processes all .df files in
-        that directory; multiple arguments are treated as explicit files.
+        FROZEN lines. With --keep-areas, preserve existing AREA/LOB-AREA
+        values. A single directory argument processes all .df files in that
+        directory; multiple arguments are treated as explicit files.
 
 Dependencies:
     PyYAML (pip install pyyaml)
@@ -774,7 +775,9 @@ def run_diff(
 
 
 # ── flatten ───────────────────────────────────────────────────────────────────
-def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int, int]:
+def flatten_file(
+    src_path: str, dest_path: str, keep_areas: bool = False
+) -> tuple[int, int, int, int]:
     """Apply the flatten transformations to src_path and write the result to
     dest_path.
 
@@ -794,13 +797,17 @@ def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int, int]:
     # endings on write.
     content = raw.replace("\r\n", "\n")
 
-    area_count = len(RE_FLATTEN_AREA.findall(content))
-    lob_area_count = len(RE_FLATTEN_LOB_AREA.findall(content))
+    area_count = 0
+    lob_area_count = 0
     can_count = len(RE_FLATTEN_CAN.findall(content))
     frozen_count = len(RE_FLATTEN_FROZEN.findall(content))
 
-    new_content = RE_FLATTEN_AREA.sub(FLATTEN_AREA_REPLACEMENT, content)
-    new_content = RE_FLATTEN_LOB_AREA.sub(FLATTEN_LOB_AREA_REPLACEMENT, new_content)
+    new_content = content
+    if not keep_areas:
+        area_count = len(RE_FLATTEN_AREA.findall(content))
+        lob_area_count = len(RE_FLATTEN_LOB_AREA.findall(content))
+        new_content = RE_FLATTEN_AREA.sub(FLATTEN_AREA_REPLACEMENT, new_content)
+        new_content = RE_FLATTEN_LOB_AREA.sub(FLATTEN_LOB_AREA_REPLACEMENT, new_content)
     new_content = RE_FLATTEN_CAN.sub("", new_content)
     new_content = RE_FLATTEN_FROZEN.sub("", new_content)
 
@@ -819,7 +826,9 @@ def flatten_file(src_path: str, dest_path: str) -> tuple[int, int, int, int]:
     return area_count, lob_area_count, can_count, frozen_count
 
 
-def run_flatten(paths: list[str], output_path: Optional[str]) -> int:
+def run_flatten(
+    paths: list[str], output_path: Optional[str], keep_areas: bool = False
+) -> int:
     files: list[str] = []
     dir_mode = False
 
@@ -850,7 +859,7 @@ def run_flatten(paths: list[str], output_path: Optional[str]) -> int:
         else:
             dest = output_path
 
-        flatten_file(path, dest)
+        flatten_file(path, dest, keep_areas)
 
     return 0
 
@@ -913,7 +922,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     flatten_cmd = subparsers.add_parser(
         "flatten",
-        help='Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- and FROZEN lines',
+        help='Reset AREA/LOB-AREA values and strip CAN- and FROZEN lines',
     )
     flatten_cmd.add_argument(
         "paths", nargs="+", metavar="directory|file.df",
@@ -923,6 +932,10 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output",
         help="Write result to this file/directory instead of overwriting in "
              "place (single input: file path; directory input: output directory)",
+    )
+    flatten_cmd.add_argument(
+        "--keep-areas", action="store_true",
+        help="Preserve existing AREA and LOB-AREA values",
     )
 
     return parser
@@ -948,7 +961,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         elif args.command == "diff":
             return run_diff(args.source, args.target, args.output, args.tablemove)
         elif args.command == "flatten":
-            return run_flatten(args.paths, args.output)
+            return run_flatten(args.paths, args.output, args.keep_areas)
         else:
             parser.print_help()
             return 1

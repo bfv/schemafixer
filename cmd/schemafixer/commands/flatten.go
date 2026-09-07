@@ -32,22 +32,29 @@ const (
 // NewFlattenCmd builds and returns the 'flatten' cobra command.
 func NewFlattenCmd() *cobra.Command {
 	var outputPath string
+	var keepAreas bool
 
 	cmd := &cobra.Command{
 		Use:   "flatten <directory|file.df> [file2.df ...]",
-		Short: `Reset all AREA/LOB-AREA values to "Schema Area" and strip CAN- lines`,
+		Short: `Reset AREA/LOB-AREA values and strip CAN- and FROZEN lines`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runFlatten(args, outputPath)
+			return runFlattenWithOptions(args, outputPath, keepAreas)
 		},
 	}
 
 	cmd.Flags().StringVarP(&outputPath, "output", "o", "", "Write result to this file/directory instead of overwriting in place (single input: file path; directory input: output directory)")
+	cmd.Flags().BoolVar(&keepAreas, "keep-areas", false, "Preserve existing AREA and LOB-AREA values")
 	return cmd
 }
 
 // runFlatten resolves the input arguments to a concrete file list and processes each one.
 func runFlatten(args []string, outputPath string) error {
+	return runFlattenWithOptions(args, outputPath, false)
+}
+
+// runFlattenWithOptions resolves the input arguments to a concrete file list and processes each one.
+func runFlattenWithOptions(args []string, outputPath string, keepAreas bool) error {
 	var files []string
 	dirMode := false
 
@@ -95,7 +102,7 @@ func runFlatten(args []string, outputPath string) error {
 			dest = outputPath
 		}
 
-		if err := flattenFile(path, dest); err != nil {
+		if err := flattenFileWithOptions(path, dest, keepAreas); err != nil {
 			return fmt.Errorf("flattening %q: %w", path, err)
 		}
 	}
@@ -113,6 +120,12 @@ func runFlatten(args []string, outputPath string) error {
 // plain ASCII; any multi-byte payload elsewhere in the file (descriptions,
 // labels, etc.) is passed through untouched regardless of its codepage.
 func flattenFile(srcPath, destPath string) error {
+	return flattenFileWithOptions(srcPath, destPath, false)
+}
+
+// flattenFileWithOptions applies the flatten transformations to srcPath and writes the
+// result to destPath.
+func flattenFileWithOptions(srcPath, destPath string, keepAreas bool) error {
 	log.Debug().Str("file", srcPath).Msg("processing")
 
 	raw, err := os.ReadFile(srcPath)
@@ -124,13 +137,18 @@ func flattenFile(srcPath, destPath string) error {
 	// endings on write.
 	content := strings.ReplaceAll(string(raw), "\r\n", "\n")
 
-	areaCount := len(reFlattenArea.FindAllString(content, -1))
-	lobAreaCount := len(reFlattenLobArea.FindAllString(content, -1))
+	areaCount := 0
+	lobAreaCount := 0
 	canCount := len(reFlattenCan.FindAllString(content, -1))
 	frozenCount := len(reFlattenFrozen.FindAllString(content, -1))
 
-	newContent := reFlattenArea.ReplaceAllString(content, flattenAreaReplacement)
-	newContent = reFlattenLobArea.ReplaceAllString(newContent, flattenLobAreaReplacement)
+	newContent := content
+	if !keepAreas {
+		areaCount = len(reFlattenArea.FindAllString(content, -1))
+		lobAreaCount = len(reFlattenLobArea.FindAllString(content, -1))
+		newContent = reFlattenArea.ReplaceAllString(newContent, flattenAreaReplacement)
+		newContent = reFlattenLobArea.ReplaceAllString(newContent, flattenLobAreaReplacement)
+	}
 	newContent = reFlattenCan.ReplaceAllString(newContent, "")
 	newContent = reFlattenFrozen.ReplaceAllString(newContent, "")
 
