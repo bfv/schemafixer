@@ -1,5 +1,7 @@
 # `schemafixer`
 
+[![CI](https://github.com/bfv/schemafixer/actions/workflows/ci.yaml/badge.svg)](https://github.com/bfv/schemafixer/actions/workflows/ci.yaml)
+
 ## apply 
 Schema fixer is a tool for making it possible to fix schema areas between a git repo and the actual environments.
 For example, the .df in git puts all table/index/lob in the `Schema Area`, whereas in production these are in dedicated storage areas.
