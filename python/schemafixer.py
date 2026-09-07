@@ -8,6 +8,9 @@ Subcommands:
     apply <schema.df> <rules.yaml> [-o OUTPUT]
         Apply area rules from the YAML rules file to a .df schema file.
 
+    fixwidth <schema.df> [-o OUTPUT]
+        Correct MAX-WIDTH values from character and raw FORMAT values.
+
     parse <schema.df> <rules.yaml> [-o OUTPUT]
         Generate a rules YAML file from an existing .df schema and a
         defaults-only rules file.
@@ -26,6 +29,7 @@ Dependencies:
 
 Usage examples:
     python schemafixer.py apply schema/sports2020.df model/rules.yaml -o out.df
+    python schemafixer.py fixwidth schema/sports2020.df -o fixed.df
     python schemafixer.py parse schema/sports2020.df model/default.yaml -o rules.yaml
     python schemafixer.py diff schema/sports2020.df schema/sports2020-prd.df
     python schemafixer.py flatten schema/sports2020.df -o out.df
@@ -40,7 +44,6 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Optional
 
 try:
     import yaml
@@ -57,11 +60,16 @@ log = logging.getLogger("schemafixer")
 # ── Regular expressions for .df construct detection and area replacement ──
 RE_ADD_TABLE = re.compile(r'^ADD TABLE "([^"]+)"', re.IGNORECASE)
 RE_ADD_FIELD = re.compile(r'^ADD FIELD "([^"]+)" OF "([^"]+)"', re.IGNORECASE)
+RE_BYTE_FIELD = re.compile(
+    r'^ADD FIELD "[^"]+" OF "[^"]+" AS (?:character|raw)\b', re.IGNORECASE
+)
 RE_ADD_INDEX = re.compile(r'^ADD INDEX "([^"]+)" ON "([^"]+)"', re.IGNORECASE)
 RE_ADD_SEQUENCE = re.compile(r'^ADD SEQUENCE ', re.IGNORECASE)
 RE_CHECKSUM = re.compile(r'^\d{10}$')
 RE_AREA = re.compile(r'^(  AREA ")([^"]+)(".*$)')
 RE_LOB_AREA = re.compile(r'^(  LOB-AREA ")([^"]+)(".*$)')
+RE_FORMAT_WIDTH = re.compile(r'^\s*FORMAT "x\((\d+)\)"\s*$', re.IGNORECASE)
+RE_MAX_WIDTH = re.compile(r'^(\s*MAX-WIDTH\s+)\d+(\s*)$')
 
 # ── flatten regexes (multiline, ASCII-only patterns) ────────────────────────
 RE_FLATTEN_AREA = re.compile(r'^  AREA ".*"$', re.MULTILINE)
@@ -182,6 +190,17 @@ def read_lines(path: str) -> list[str]:
 
 
 # ── apply ─────────────────────────────────────────────────────────────────────
+def max_width_from_format(line: str) -> int:
+    match = RE_FORMAT_WIDTH.match(line)
+    if not match:
+        return 0
+
+    width = int(match.group(1))
+    if width <= 0:
+        return 0
+    return min(width * 2, 31995)
+
+
 def process_df(lines: list[str], rules: SchemaFixerRules, line_ending: str) -> str:
     state = STATE_NONE
     current_table = current_field = current_index = ""
@@ -285,6 +304,49 @@ def run_apply(df_path: str, rules_path: str, output_path: Optional[str]) -> int:
             log.debug("checksum written byteCount=%d", byte_count)
 
     log.debug("apply complete")
+    return 0
+
+
+# ── fixwidth ──────────────────────────────────────────────────────────────────
+def process_width_df(lines: list[str], line_ending: str) -> str:
+    field_width: Optional[int] = 0
+    out: list[str] = []
+
+    for line in lines:
+        if RE_ADD_FIELD.match(line):
+            field_width = None if RE_BYTE_FIELD.match(line) else 0
+        elif line.strip() == "":
+            field_width = 0
+
+        if field_width is None:
+            width = max_width_from_format(line)
+            if width > 0:
+                field_width = width
+        if field_width:
+            match = RE_MAX_WIDTH.match(line)
+            if match:
+                line = match.group(1) + str(field_width) + match.group(2)
+
+        out.append(line)
+        out.append(line_ending)
+
+    return "".join(out)
+
+
+def run_fixwidth(df_path: str, output_path: Optional[str]) -> int:
+    lines = read_lines(df_path)
+    line_ending = "\r\n" if os.name == "nt" else "\n"
+    has_checksum = bool(lines and RE_CHECKSUM.match(lines[-1]))
+    if has_checksum:
+        lines = lines[:-1]
+
+    output = process_width_df(lines, line_ending)
+    checksum = f"{len(output.encode('latin-1')):010d}{line_ending}" if has_checksum else ""
+    if output_path:
+        with open(output_path, "wb") as file:
+            file.write((output + checksum).encode("latin-1"))
+    else:
+        sys.stdout.buffer.write((output + checksum).encode("latin-1"))
     return 0
 
 
@@ -817,6 +879,14 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output", help="Write output to file instead of stdout"
     )
 
+    fixwidth_cmd = subparsers.add_parser(
+        "fixwidth", help="Fix MAX-WIDTH values from character and raw FORMAT values"
+    )
+    fixwidth_cmd.add_argument("df", help="Input .df schema file")
+    fixwidth_cmd.add_argument(
+        "-o", "--output", help="Write output to file instead of stdout"
+    )
+
     parse_cmd = subparsers.add_parser(
         "parse", help="Generate a rules file from an existing .df schema"
     )
@@ -871,6 +941,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     try:
         if args.command == "apply":
             return run_apply(args.df, args.rules, args.output)
+        elif args.command == "fixwidth":
+            return run_fixwidth(args.df, args.output)
         elif args.command == "parse":
             return run_parse(args.df, args.rules, args.output)
         elif args.command == "diff":

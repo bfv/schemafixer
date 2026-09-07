@@ -37,6 +37,11 @@ The idea is that this way it's possible to have different areas for various envi
 
 NOTE: although it's possible to redirect `stdout` to a file (`... > blabla.df`), it is advised to use `... -o blabla.df` instead. There are cases (shells) where redirecting causes codepage issues.
 
+## fixwidth
+`fixwidth` corrects `MAX-WIDTH` for `character` and `raw` fields using their `FORMAT "X(n)"` value. The width is `2n`, capped at `31995`:
+
+`schemafixer fixwidth sports2020.df -o fixed.df`
+
 ## parse
 Suppose you have an existing production schema and you don't want to hand type all the rules. This is where the `parse` command comes in handy.
 Suppose a lot of tables etc go into default areas and you want to record the exceptions, use the `parse` command:
