@@ -1,0 +1,4 @@
+{
+  "matchManagers": ["github-actions"],
+  "groupName": "GitHub Actions"
+}
