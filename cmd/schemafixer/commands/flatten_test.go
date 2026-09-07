@@ -34,6 +34,26 @@ func TestFlattenFile(t *testing.T) {
 				"\n",
 		},
 		{
+			name: "strips all CAN-* permission lines regardless of indentation",
+			input: "ADD TABLE \"Account\"\n" +
+				"  AREA \"Data Area\"\n" +
+				"  CAN-CREATE \"coa-*,batch,super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"  CAN-DELETE \"coa-*,batch,super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"  CAN-READ \"coa-*,batch,super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"  CAN-WRITE \"coa-*,batch,super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"  CAN-DUMP \"super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"  CAN-LOAD \"super-dba,tabadm,tabadm1,tabadm2\"\n" +
+				"    CAN-READ \"*\"\n" +
+				"\tCAN-WRITE \"*\"\n" +
+				"CAN-DUMP \"*\"\n" +
+				"  DESCRIPTION \"CAN-READ inside a value must survive\"\n" +
+				"\n",
+			want: "ADD TABLE \"Account\"\n" +
+				"  AREA \"Schema Area\"\n" +
+				"  DESCRIPTION \"CAN-READ inside a value must survive\"\n" +
+				"\n",
+		},
+		{
 			name:  "CRLF line endings are normalized and restored",
 			input: "ADD TABLE \"Item\"\r\n  AREA \"Data Area\"\r\n\r\n",
 			want:  "ADD TABLE \"Item\"\n  AREA \"Schema Area\"\n\n",

@@ -66,7 +66,9 @@ RE_LOB_AREA = re.compile(r'^(  LOB-AREA ")([^"]+)(".*$)')
 # ── flatten regexes (multiline, ASCII-only patterns) ────────────────────────
 RE_FLATTEN_AREA = re.compile(r'^  AREA ".*"$', re.MULTILINE)
 RE_FLATTEN_LOB_AREA = re.compile(r'^  LOB-AREA ".*"$', re.MULTILINE)
-RE_FLATTEN_CAN = re.compile(r'^  CAN-.*$\n?', re.MULTILINE)
+# Any line whose first word starts with CAN- (CAN-CREATE, CAN-DELETE, CAN-READ,
+# CAN-WRITE, CAN-DUMP, CAN-LOAD, ...), regardless of indentation.
+RE_FLATTEN_CAN = re.compile(r'^[ \t]*CAN-\S*.*$\n?', re.MULTILINE)
 
 FLATTEN_AREA_REPLACEMENT = '  AREA "Schema Area"'
 FLATTEN_LOB_AREA_REPLACEMENT = '  LOB-AREA "Schema Area"'

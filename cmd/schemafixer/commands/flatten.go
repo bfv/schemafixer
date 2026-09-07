@@ -17,7 +17,9 @@ import (
 var (
 	reFlattenArea    = regexp.MustCompile(`(?m)^  AREA ".*"$`)
 	reFlattenLobArea = regexp.MustCompile(`(?m)^  LOB-AREA ".*"$`)
-	reFlattenCan     = regexp.MustCompile(`(?m)^  CAN-.*$\n?`)
+	// Any line whose first word starts with CAN- (CAN-CREATE, CAN-DELETE,
+	// CAN-READ, CAN-WRITE, CAN-DUMP, CAN-LOAD, ...), regardless of indentation.
+	reFlattenCan = regexp.MustCompile(`(?m)^[ \t]*CAN-\S*.*$\n?`)
 )
 
 const (
