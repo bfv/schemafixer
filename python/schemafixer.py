@@ -8,7 +8,7 @@ Subcommands:
     apply <schema.df> <rules.yaml> [-o OUTPUT]
         Apply area rules from the YAML rules file to a .df schema file.
 
-    fixwidth <schema.df> [-o OUTPUT]
+    fixwidth <schema.df> [-o OUTPUT] [--ignore-bigger]
         Correct MAX-WIDTH values from character and raw FORMAT values.
 
     parse <schema.df> <rules.yaml> [-o OUTPUT]
@@ -309,7 +309,9 @@ def run_apply(df_path: str, rules_path: str, output_path: Optional[str]) -> int:
 
 
 # ── fixwidth ──────────────────────────────────────────────────────────────────
-def process_width_df(lines: list[str], line_ending: str) -> str:
+def process_width_df(
+    lines: list[str], line_ending: str, ignore_bigger: bool = False
+) -> str:
     field_width: Optional[int] = 0
     out: list[str] = []
 
@@ -326,7 +328,9 @@ def process_width_df(lines: list[str], line_ending: str) -> str:
         if field_width:
             match = RE_MAX_WIDTH.match(line)
             if match:
-                line = match.group(1) + str(field_width) + match.group(2)
+                current_width = int(line[len(match.group(1)) : len(line) - len(match.group(2))])
+                if not ignore_bigger or current_width <= field_width:
+                    line = match.group(1) + str(field_width) + match.group(2)
 
         out.append(line)
         out.append(line_ending)
@@ -334,14 +338,16 @@ def process_width_df(lines: list[str], line_ending: str) -> str:
     return "".join(out)
 
 
-def run_fixwidth(df_path: str, output_path: Optional[str]) -> int:
+def run_fixwidth(
+    df_path: str, output_path: Optional[str], ignore_bigger: bool = False
+) -> int:
     lines = read_lines(df_path)
     line_ending = "\r\n" if os.name == "nt" else "\n"
     has_checksum = bool(lines and RE_CHECKSUM.match(lines[-1]))
     if has_checksum:
         lines = lines[:-1]
 
-    output = process_width_df(lines, line_ending)
+    output = process_width_df(lines, line_ending, ignore_bigger)
     checksum = f"{len(output.encode('latin-1')):010d}{line_ending}" if has_checksum else ""
     if output_path:
         with open(output_path, "wb") as file:
@@ -895,6 +901,10 @@ def build_parser() -> argparse.ArgumentParser:
     fixwidth_cmd.add_argument(
         "-o", "--output", help="Write output to file instead of stdout"
     )
+    fixwidth_cmd.add_argument(
+        "--ignore-bigger", action="store_true",
+        help="Keep MAX-WIDTH values larger than the FORMAT-derived value",
+    )
 
     parse_cmd = subparsers.add_parser(
         "parse", help="Generate a rules file from an existing .df schema"
@@ -955,7 +965,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.command == "apply":
             return run_apply(args.df, args.rules, args.output)
         elif args.command == "fixwidth":
-            return run_fixwidth(args.df, args.output)
+            return run_fixwidth(args.df, args.output, args.ignore_bigger)
         elif args.command == "parse":
             return run_parse(args.df, args.rules, args.output)
         elif args.command == "diff":

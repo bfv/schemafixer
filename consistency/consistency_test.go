@@ -180,6 +180,26 @@ func TestGoVsPythonConsistency(t *testing.T) {
 	}
 }
 
+func TestFixwidthIgnoreBiggerGoVsPython(t *testing.T) {
+	root := repoRoot(t)
+	python := pythonInterpreter(t)
+	goBin := buildGoBinary(t, root)
+	pyScript := filepath.Join(root, "python", "schemafixer.py")
+
+	inputPath := filepath.Join(t.TempDir(), "input.df")
+	input := "ADD FIELD \"Reason\" OF \"Employee\" AS character\n  FORMAT \"X(40)\"\n  MAX-WIDTH 128\n\n" +
+		"ADD FIELD \"Comment\" OF \"Employee\" AS character\n  FORMAT \"X(40)\"\n  MAX-WIDTH 64\n\n"
+	if err := os.WriteFile(inputPath, []byte(input), 0644); err != nil {
+		t.Fatalf("writing input schema: %v", err)
+	}
+
+	goOut := runToFile(t, root, filepath.Join(t.TempDir(), "go.df"), goBin, "fixwidth", inputPath, "--ignore-bigger")
+	pyOut := runToFile(t, root, filepath.Join(t.TempDir(), "python.df"), python, pyScript, "fixwidth", inputPath, "--ignore-bigger")
+	if !bytes.Equal(goOut, pyOut) {
+		t.Errorf("python output diverges from go with --ignore-bigger\n--- go ---\n%s\n--- python ---\n%s", goOut, pyOut)
+	}
+}
+
 // assertYAMLEqual parses both byte slices as YAML and fails the test if the
 // resulting structures are not deeply equal, regardless of formatting.
 func assertYAMLEqual(t *testing.T, goOut, pyOut []byte) {

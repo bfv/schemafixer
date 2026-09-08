@@ -22,19 +22,21 @@ var (
 // NewFixWidthCmd builds and returns the 'fixwidth' cobra command.
 func NewFixWidthCmd() *cobra.Command {
 	var outputPath string
+	var ignoreBigger bool
 	cmd := &cobra.Command{
 		Use:   "fixwidth <schema.df>",
 		Short: "Fix MAX-WIDTH values from character and raw FORMAT values",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runFixWidth(args[0], outputPath)
+			return runFixWidth(args[0], outputPath, ignoreBigger)
 		},
 	}
 	cmd.Flags().StringVarP(&outputPath, "output", "o", "", "Write output to file instead of stdout")
+	cmd.Flags().BoolVar(&ignoreBigger, "ignore-bigger", false, "Keep MAX-WIDTH values larger than the FORMAT-derived value")
 	return cmd
 }
 
-func runFixWidth(dfPath, outputPath string) error {
+func runFixWidth(dfPath, outputPath string, ignoreBigger bool) error {
 	lines, err := readLines(dfPath)
 	if err != nil {
 		return fmt.Errorf("reading df file: %w", err)
@@ -51,7 +53,7 @@ func runFixWidth(dfPath, outputPath string) error {
 	}
 
 	var buf bytes.Buffer
-	processWidthDF(lines, &buf, lineEnding)
+	processWidthDF(lines, &buf, lineEnding, ignoreBigger)
 
 	var out io.Writer = os.Stdout
 	if outputPath != "" {
@@ -73,7 +75,7 @@ func runFixWidth(dfPath, outputPath string) error {
 	return nil
 }
 
-func processWidthDF(lines []string, buf *bytes.Buffer, lineEnding string) {
+func processWidthDF(lines []string, buf *bytes.Buffer, lineEnding string, ignoreBigger bool) {
 	fieldWidth := 0
 	for _, line := range lines {
 		if reAddField.MatchString(line) {
@@ -92,7 +94,10 @@ func processWidthDF(lines []string, buf *bytes.Buffer, lineEnding string) {
 		}
 		if fieldWidth > 0 {
 			if m := reMaxWidth.FindStringSubmatch(line); m != nil {
-				line = m[1] + strconv.Itoa(fieldWidth) + m[2]
+				currentWidth, err := strconv.Atoi(strings.TrimSpace(line[len(m[1]) : len(line)-len(m[2])]))
+				if !ignoreBigger || err != nil || currentWidth <= fieldWidth {
+					line = m[1] + strconv.Itoa(fieldWidth) + m[2]
+				}
 			}
 		}
 		buf.WriteString(line)

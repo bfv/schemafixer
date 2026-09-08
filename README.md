@@ -42,6 +42,8 @@ NOTE: although it's possible to redirect `stdout` to a file (`... > blabla.df`),
 
 `schemafixer fixwidth sports2020.df -o fixed.df`
 
+Use `--ignore-bigger` to keep an existing `MAX-WIDTH` when it already exceeds the computed value.
+
 ## parse
 Suppose you have an existing production schema and you don't want to hand type all the rules. This is where the `parse` command comes in handy.
 Suppose a lot of tables etc go into default areas and you want to record the exceptions, use the `parse` command:
